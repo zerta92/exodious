@@ -1,6 +1,5 @@
 
 
-import pandas as pd
 from datetime import datetime
 from firebase_test import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
 
@@ -49,20 +48,8 @@ def send_ig_info_to_firebase(info):
 
 
 def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=None):
-    """
-    Calculate Exponential Moving Average (EMA) for a given column in a DataFrame.
-
-    Parameters:
-        - data: DataFrame containing the financial data.
-        - close_column: Name of the column for which EMA needs to be calculated.
-        - ema_period: Time period for EMA calculation (default is 14).
-
-    Returns:
-        DataFrame with an additional column 'EMA' containing EMA values.
-    """
     df = data.copy()  # Avoid modifying the original DataFrame
 
-    # Calculate EMA using a simple Python loop
     alpha = 2 / (ema_period + 1)
     # Initial value is the first close price
     ema_values = [df[close_column].iloc[0]]

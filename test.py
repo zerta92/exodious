@@ -1,4 +1,7 @@
 import bot_plots as bot
+from firebase_test import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
+from utils_test import send_ig_info_to_firebase, send_metrics_to_firebase, send_notifications_to_firebase, get_latest_metrics_from_firebase, get_latest_long_or_short_from_firebase
+
 import numpy as np
 # import matplotlib as plt
 # import plotly as py
@@ -51,22 +54,26 @@ def get_emas(df):
     return [ema_fast, ema_slow]
 
 
-# def calc_rsi(close, n):
-#     delta = close['Close'].diff()
+def calc_rsi(price, RSI_SETTING, current):
 
-#     dUp, dDown = delta.copy(), delta.copy()
-#     dUp[dUp < 0] = 0
-#     dDown[dDown > 0] = 0
+    delta = price['Close']
+    print('deltaa-----')
+    print(delta)
+    price_with_current = pd.concat(
+        [delta, pd.DataFrame({0: [current]})])
+    print(price_with_current)
+    diff = delta.diff()
+    dUp, dDown = diff.copy(), diff.copy()
+    dUp[dUp < 0] = 0
+    dDown[dDown > 0] = 0
+    RolUp = dUp.rolling(RSI_SETTING).mean()  # pd.rolling_mean(dUp, n)
+    # pd.rolling_mean(dDown, n).abs()
+    RolDown = dDown.rolling(RSI_SETTING).mean().abs()
+    RS = RolUp / RolDown
+    RS = RS.fillna(value=0)
+    rsi = 100.0 - (100.0 / (1.0 + RS))
 
-#     RolUp = dUp.rolling(n).mean()
-#     RolDown = dDown.rolling(n).mean().abs()
-
-#     RS = RolUp/RolDown
-#     RS = RS.fillna(value=1)
-
-#     rsi = 100.0 - (100.0 / (1.0 + RS))
-
-#     return rsi
+    return rsi
 
 
 # def calc_ema(close, fast, slow):
@@ -149,18 +156,16 @@ def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=No
 
 random_data = createRandomData(42)
 print(random_data)
-ema = calculate_ema(random_data, close_column='Close', ema_period=14)
-print(ema)
-print(ema.iloc[-1])
+# ema = calculate_ema(random_data, close_column='Close', ema_period=14)
+# print(ema)
+# print(ema.iloc[-1])
 
 
 # csv = read_csv_file()
 # csv = csv.set_index('Local time')
 # print(csv)
-# rsi = calc_rsi(csv, 5)
-# emas = calc_ema(csv, 5, 15)
-# ema_fast = emas[0]
-# ema_slow = emas[1]
+send_notifications_to_firebase(
+    {'buy': False, 'sell': True, 'mid': 66, 'begin_trading': True})
 
 
 # data = pd.DataFrame({'Time': csv.index, 'RSI': rsi, 'EMA_FAST': ema_fast,
