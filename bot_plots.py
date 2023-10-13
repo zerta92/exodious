@@ -327,7 +327,6 @@ class Strategy:
         return (last_close_price - prev_ema) * (2 / (period + 1)) + prev_ema
 
     def calc_emas_short(self, prev_data_df_short, exchange_rate):
-        # //todo: these need to either take in historical ema calculation or add a new value every `window` minutes
         last_close = exchange_rate
         # Calculate EMAs of last closed candlestick
         self.fast = calculate_ema(
