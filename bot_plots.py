@@ -218,7 +218,7 @@ class Strategy:
                 logging.critical('BUY ' + INSTRUMENT + ' ' + json.loads(BUY)
                                  ['order']['units'] + ' units at bid: ' + str(mid))
                 send_notifications_to_firebase(
-                    {'buy': True, 'sell': False, 'mid': 66, 'begin_trading': True})
+                    {'buy': True, 'sell': False, 'mid': mid, 'begin_trading': self.ema_begin_trading_flag})
 
         if (self.fast < self.slow and rsi_signal == 'SELL'):
             if self.in_long:
@@ -245,7 +245,7 @@ class Strategy:
                 logging.critical('PROFIT:' + str(self.profit))
                 logging.critical('FEE:' + str(fee))
                 send_notifications_to_firebase(
-                    {'buy': False, 'sell': True, 'mid': 66, 'begin_trading': True})
+                    {'buy': False, 'sell': True, 'mid': mid, 'begin_trading': self.ema_begin_trading_flag})
 
     def check_if_meet_trade_parameters(self, mid, transaction):
         print('SELL CHECK')
