@@ -1,11 +1,11 @@
-import numpy as np
+# import numpy as np
 import pandas as pd
 import json
 import btalib
-import mplfinance as mpf
+# import mplfinance as mpf
 
-import matplotlib as m
-import matplotlib.pyplot as plt
+# import matplotlib as m
+# import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 import threading
@@ -14,7 +14,7 @@ import time
 import logging
 from datetime import timedelta, datetime
 import schedule
-import requests  
+import requests
 from utils_test import send_ig_info_to_firebase, send_metrics_to_firebase, send_notifications_to_firebase, get_latest_metrics_from_firebase, get_latest_long_or_short_from_firebase
 from ig import buy_order, sell_order, login, confirm_order, get_positions, close_position, get_market_details
 
@@ -283,7 +283,7 @@ class Strategy():
         weekday = datetime.today().weekday()
         hour = datetime.now().hour
 
-        if(self.data_loss):
+        if (self.data_loss):
             logging.critical('DATA LOSS: ' + str(self.data_loss))
             send_error_to_firebase('Data Loss')
             # # last_saved_metrics = get_latest_metrics_from_firebase()
@@ -335,14 +335,14 @@ class Strategy():
         # self.get_latest_rsi(RSI_SETTING, '60min', API_KEY)
         self.current_rsi_60 = rsi
         # 15 min chart
-        if(date >= self.last_15_timestamp_check + timedelta(days=1)):
+        if (date >= self.last_15_timestamp_check + timedelta(days=1)):
             self.last_15_timestamp_check = date
             self.calc_emas_15(last_15_chart)
             self.previous_rsi = self.current_rsi
             self.current_rsi = rsi
 
         # 60 min chart
-        if(self.last_60_timestamp_check != last_60_chart.iloc[-1]['Gmt time']):
+        if (self.last_60_timestamp_check != last_60_chart.iloc[-1]['Gmt time']):
             self.last_60_timestamp_check = last_60_chart.iloc[-1]['Gmt time']
             self.calc_emas_60(last_60_chart)
 
@@ -483,7 +483,7 @@ class Strategy():
                 rsi = 100 - (100 / (1 + rs))
                 last_gain_avg = current_gains_avg
                 last_loss_avg = current_losses_avg
-                if(x == len(data_list)-1):
+                if (x == len(data_list)-1):
                     last_key = data_keys[x]
                 result[data_keys[x]] = round(rsi, 2)
 
@@ -498,7 +498,7 @@ class Strategy():
         fast_ema = self.calc_ema(FAST, current_fast, last_close)
         slow_ema = self.calc_ema(SLOW, current_slow, last_close)
 
-        if(fast_ema < slow_ema):
+        if (fast_ema < slow_ema):
             return False
         return True
 
@@ -677,7 +677,8 @@ def run_once():
     print('STARTING2...')
     strategy = Strategy()
     get_data(strategy, API_KEY)
-    
+
+
 run_once()
 
 # if __name__ == 'exodious.bot.bot':

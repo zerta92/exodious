@@ -17,14 +17,12 @@ import logging
 import schedule
 import requests
 
-from utils_test import calculate_ema, snake_case_to_proper_case
-
 API_KEY = '3B01QWGPBVQBKLG2'
 BACKUP_API_KEY = 'R6ZSU4QDSJ052XQN'
-FROM_CURRENCY = 'BTC'
+FROM_CURRENCY = 'GBP'
 TO_CURRENCY = 'USD'
-SHORT_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
-LONG_WINDOW = 'DIGITAL_CURRENCY_MONTHLY'
+FIFTEEN_MINUTE_INTERVAL = '15min'
+SIXTY_MINUTE_INTERVAL = '60min'
 
 STREAM_INTERVAL = 2  # min
 ANIMATION_STREAM = (STREAM_INTERVAL + 0.1)*60 * 1000  # millisec
@@ -76,9 +74,7 @@ class Strategy:
         ])
 
         # GENERAL
-        prev_data_df = self.get_granular_data(SHORT_WINDOW, API_KEY)
-        prev_data_df_long = self.get_granular_data(LONG_WINDOW, API_KEY)
-
+        prev_data_df = self.get_granular_data(FIFTEEN_MINUTE_INTERVAL, API_KEY)
         self.last_completed_candle = prev_data_df.iloc[-1]
         self.in_long = False
         self.in_short = False
@@ -89,31 +85,28 @@ class Strategy:
         # RSI
         self.current_rsi = 0
         rsi = self.calc_rsi(prev_data_df)
-
         self.current_rsi = rsi.iloc[-1]
 
-        # EMA Short Window
+        # EMA 15
         self.fast = 0
         self.slow = 0
+        ema_fast = btalib.ema(prev_data_df, period=FAST,
+                              _seed=prev_data_df['Close'].iloc[0]).df['ema']
+        ema_slow = btalib.ema(prev_data_df, period=SLOW,
+                              _seed=prev_data_df['Close'].iloc[0]).df['ema']
+        self.prev_fast = ema_fast.iloc[-1]
+        self.prev_slow = ema_slow.iloc[-1]
 
-        ema_fast_short = calculate_ema(
-            prev_data_df, close_column='Close', ema_period=FAST)['EMA']
-        ema_slow_short = calculate_ema(
-            prev_data_df, close_column='Close', ema_period=SLOW)['EMA']
-        self.prev_fast_short = ema_fast_short.iloc[-1]
-        self.prev_slow_short = ema_slow_short.iloc[-1]
-
-        # EMA Long Window
-
+        # EMA 60
+        last_60_chart = self.get_granular_data(SIXTY_MINUTE_INTERVAL, API_KEY)
         self.fast_60 = 0
         self.slow_60 = 0
-
-        ema_fast_long = calculate_ema(
-            prev_data_df_long, close_column='Close', ema_period=FAST)['EMA']
-        ema_slow_long = calculate_ema(
-            prev_data_df_long, close_column='Close', ema_period=FAST)['EMA']
-        self.prev_fast_long = ema_fast_long.iloc[-1]
-        self.prev_slow_long = ema_slow_long.iloc[-1]
+        ema_fast_60 = btalib.ema(
+            last_60_chart, period=FAST, _seed=last_60_chart['Close'].iloc[0]).df['ema']
+        ema_slow_60 = btalib.ema(
+            last_60_chart, period=SLOW, _seed=last_60_chart['Close'].iloc[0]).df['ema']
+        self.prev_fast_60 = ema_fast_60.iloc[-1]
+        self.prev_slow_60 = ema_slow_60.iloc[-1]
 
         # LOG
         self.total = float(5000)
@@ -172,11 +165,11 @@ class Strategy:
         self.axs[0].plot(self.x_sells, self.sell_marks,
                          marker='X', color='red')
 
-        self.y2.append(float(self.prev_slow_short))
+        self.y2.append(float(self.prev_slow))
         self.x2.append(time)
         self.line2.set_data(self.x2, self.y2)
 
-        self.y3.append(float(self.prev_fast_short))
+        self.y3.append(float(self.prev_fast))
         self.x3.append(time)
         self.line3.set_data(self.x3, self.y3)
 
@@ -195,9 +188,9 @@ class Strategy:
 
     def make_trades(self):
         r = self.get_current_data()
-        bid_price = r
-        ask_price = r
-        mid = (bid_price + ask_price)/2
+        bid_price = float(r["8. Bid Price"][0])
+        ask_price = float(r["9. Ask Price"][0])
+        mid = (float(bid_price) + float(ask_price))/2
         buy_and_sell_stat = self.do_rsi_checks(self.current_rsi)
 
         logging.critical(' FAST: '+str(self.fast))
@@ -273,90 +266,79 @@ class Strategy:
 
     def get_interval(self):
         api_url_forex_intraday = 'https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol={}&to_symbol={}&interval={}&outputsize=full&apikey={}'.format(
-            FROM_CURRENCY, TO_CURRENCY, SHORT_WINDOW, API_KEY)
+            FROM_CURRENCY, TO_CURRENCY, FIFTEEN_MINUTE_INTERVAL, API_KEY)
         exchange_rate_interval = requests.get(api_url_forex_intraday)
         if exchange_rate_interval.status_code == 200:
             print('INTERVAL DATA')
         else:
             print('REQUEST_ERROR')
 
-    def on_candle_close(self, prev_data_df_short, prev_data_df_long, exchange_rate):
+    def on_candle_close(self, last_15_chart, last_60_chart):
         '''Handles functions for every next candle closed'''
         # check if the current candle has ended, if so, assign it to last_completed_candle
-        logging.critical(
-            'LAST CLOSE '+str(prev_data_df_short.iloc[-1]['Close']))
-        last_close = prev_data_df_short.iloc[-1]['Close']
+        logging.critical('LAST CLOSE '+str(last_15_chart.iloc[-1]['Close']))
+        last_close = last_15_chart.iloc[-1]['Close']
 
-        # short window chart
-        ema_short_calculations = self.calc_emas_short(
-            prev_data_df_short, exchange_rate)
-        ema_slow = ema_short_calculations[0]
-        ema_fast = ema_short_calculations[1]
-        rsi = self.calc_rsi(prev_data_df_short)
+        # 15 min chart
+
+        self.calc_emas_15(last_15_chart)
+        rsi = self.calc_rsi(last_15_chart)
         rsi_delta = self.check_rsi_delta(self.current_rsi, rsi.iloc[-1])
         logging.critical("RSI: " + str(rsi.iloc[-1]))
         self.current_rsi = rsi.iloc[-1]
         print('RSI: ', self.current_rsi)
 
-        # long window chart
-        ema_long_calculations = self.calc_emas_long(
-            prev_data_df_long, exchange_rate)
-        ema_slow_long = ema_short_calculations[0]
-        ema_fast_long = ema_short_calculations[1]
+        # 60 min chart
 
-        rsi_60_data = self.calc_rsi(prev_data_df_long)
+        self.calc_emas_60(last_60_chart)
+        rsi_60_data = self.calc_rsi(last_60_chart)
         rsi_60 = rsi_60_data.iloc[-1]
         buy_and_sell_stat = self.do_rsi_checks(rsi_60)
-        ema_buy_check = False
+        sixty_min_buy_check = False
 
-        if ((ema_fast > ema_slow) and (ema_fast_long > ema_slow_long)):
-            ema_buy_check = True
+        if (self.fast_60 > self.slow_60):
+            sixty_min_buy_check = True
         print('BEGIN trading: ', self.begin_trading)
-        print('SIXTY MIN CHECK: ', ema_buy_check)
+        print('SIXTY MIN CHECK: ', sixty_min_buy_check)
         print('RIGHT SIDE: ', float(self.last_completed_candle["Close"]))
         print('LEFT SIDE: ', float(last_close))
         if float(last_close) != float(self.last_completed_candle["Close"]):
-            self.last_completed_candle = prev_data_df_short.iloc[-1]
-            self.last_completed_candle_60 = prev_data_df_long.iloc[-1]
-            if (self.begin_trading and ema_buy_check):
+            self.last_completed_candle = last_15_chart.iloc[-1]
+            self.last_completed_candle_60 = last_60_chart.iloc[-1]
+            if (self.begin_trading and sixty_min_buy_check):
                 self.make_trades()
 
     def calc_ema(self, period, prev_ema, last_close_price):
         '''Calculates the current EMA given a close price and the previous EMA'''
         return (last_close_price - prev_ema) * (2 / (period + 1)) + prev_ema
 
-    def calc_emas_short(self, prev_data_df_short, exchange_rate):
-        # //todo: these need to either take in historical ema calculation or add a new value every `window` minutes
-        last_close = exchange_rate
+    def calc_emas_15(self, last):
+        last_completed_candle = last.iloc[-1]
+        last_close = float(last_completed_candle["Close"])
         # Calculate EMAs of last closed candlestick
-        self.fast = calculate_ema(
-            prev_data_df_short, close_column='Close', ema_period=FAST, current_exchange=last_close)
-        self.slow = calculate_ema(
-            prev_data_df_short, close_column='Close', ema_period=SLOW, current_exchange=last_close)
+        self.fast = self.calc_ema(FAST, self.prev_fast, last_close)
+        self.slow = self.calc_ema(SLOW, self.prev_slow, last_close)
         logging.critical('FAST EMA ' + str(self.fast))
         logging.critical('SLOW EMA ' + str(self.slow))
         # check if first cross has occurred to begin trading
         if (not self.begin_trading):
-            if ((self.prev_fast_short > self.prev_slow_short and self.fast < self.slow) or (self.prev_fast_short < self.prev_slow_short and self.fast > self.slow)):
+            if ((self.prev_fast > self.prev_slow and self.fast < self.slow) or (self.prev_fast < self.prev_slow and self.fast > self.slow)):
                 self.begin_trading = True
         # set prev EMAs to current EMAs for next candlestick's calculation
-        self.prev_fast_short = self.fast
-        self.prev_slow_short = self.slow
-        return [self.slow, self.fast]
+        self.prev_fast = self.fast
+        self.prev_slow = self.slow
 
-    def calc_emas_long(self, prev_data_df_long, exchange_rate):
-        last_close = exchange_rate
+    def calc_emas_60(self, last):
+        last_completed_candle = last.iloc[-1]
+        last_close = float(last_completed_candle["Close"])
         # Calculate EMAs of last closed candlestick
-        self.fast_long = calculate_ema(
-            prev_data_df_long, close_column='Close', ema_period=FAST, current_exchange=last_close)
-        self.slow_long = calculate_ema(
-            prev_data_df_long, close_column='Close', ema_period=SLOW, current_exchange=last_close)
-        logging.critical('FAST EMA LONG ' + str(self.fast_long))
-        logging.critical('SLOW EMA LONG ' + str(self.slow_long))
+        self.fast_60 = self.calc_ema(FAST, self.prev_fast_60, last_close)
+        self.slow_60 = self.calc_ema(SLOW, self.prev_slow_60, last_close)
+        logging.critical('FAST EMA 60 ' + str(self.fast_60))
+        logging.critical('SLOW EMA 60 ' + str(self.slow_60))
         # set prev EMAs to current EMAs for next candlestick's calculation
-        self.prev_fast_long = self.fast_long
-        self.prev_slow_long = self.slow_long
-        return [self.slow_long, self.fast_long]
+        self.prev_fast_60 = self.fast_60
+        self.prev_slow_60 = self.slow_60
 
     def do_rsi_checks(self, rsi):
         buy = rsi > OVERBOUGHT
@@ -384,17 +366,16 @@ class Strategy:
             self.force_sell = True
         return delta
 
-    def get_granular_data(self, window, key):
-        api_url_forex_intraday = 'https://www.alphavantage.co/query?function={}&symbol={}&market={}&outputsize=full&apikey={}'.format(window,
-                                                                                                                                      FROM_CURRENCY, TO_CURRENCY, key)
+    def get_granular_data(self, interval, key):
+        api_url_forex_intraday = 'https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol={}&to_symbol={}&interval={}&outputsize=full&apikey={}'.format(
+            FROM_CURRENCY, TO_CURRENCY, interval, key)
         exchange_rate_interval = requests.get(api_url_forex_intraday)
         if exchange_rate_interval.status_code == 200:
             raw_data_string = json.dumps(exchange_rate_interval.json())
             raw_data_json = json.loads(raw_data_string)
             df_raw_data = pd.DataFrame(
-                raw_data_json["Time Series ({})".format(snake_case_to_proper_case(window))])
+                raw_data_json["Time Series FX ({})".format(interval)])
             data = self.format_data((df_raw_data))
-            # Reverse dataframe
             return data[::-1]
 
         else:
@@ -408,7 +389,7 @@ class Strategy:
         raw_data_json = json.loads(raw_data_string)
         df_json_raw = pd.DataFrame(
             raw_data_json["Realtime Currency Exchange Rate"], index=[0])
-        return float(df_json_raw["5. Exchange Rate"][0])
+        return df_json_raw
 
     def get_daily_data(self):
         api_url_forex_intraday = 'https://www.alphavantage.co/query?function=FX_DAILY&from_symbol={}&to_symbol={}&outputsize=full&apikey={}'.format(
@@ -434,15 +415,14 @@ class Strategy:
         df = data.T
         # Rename columns
         df["date"] = df.index
-        df["Open"] = df["1a. open (USD)"]
-        df["Close"] = df["4a. close (USD)"]
-        df["High"] = df["2a. high (USD)"]
-        df["Low"] = df["3a. low (USD)"]
-
+        df["Open"] = df["1. open"]
+        df["Close"] = df["4. close"]
+        df["High"] = df["2. high"]
+        df["Low"] = df["3. low"]
         candlestick_ready_data = pd.DataFrame(
             {'Open': df.Open, 'Close': df.Close, 'High': df.High, 'Low': df.Low})
         candlestick_ready_data['Gmt time'] = pd.to_datetime(
-            df['date'], format='%Y-%m-%d')
+            df['date'], format='%Y.%m.%d')
         df_reset_index = candlestick_ready_data.reset_index(drop=True)
         df_reset_index = df_reset_index.set_index(df_reset_index['Gmt time'])
         df = df_reset_index.drop_duplicates(keep=False)
@@ -451,7 +431,6 @@ class Strategy:
         df["Close"] = pd.to_numeric(df["Close"], downcast="float")
         df["High"] = pd.to_numeric(df["High"], downcast="float")
         df["Low"] = pd.to_numeric(df["Low"], downcast="float")
-
         return df
 
     def setup_plot(self):
@@ -463,12 +442,10 @@ class Strategy:
 
 def get_data(strategy, key):
     try:
-        # change to get current exchange
-        prev_data_df_short = strategy.get_granular_data(SHORT_WINDOW, key)
-        prev_data_df_long = strategy.get_granular_data(LONG_WINDOW, key)
-        exchange_rate = strategy.get_current_data()
-        strategy.on_candle_close(
-            prev_data_df_short, prev_data_df_long, exchange_rate)
+        last_15_chart = strategy.get_granular_data(
+            FIFTEEN_MINUTE_INTERVAL, key)
+        last_60_chart = strategy.get_granular_data(SIXTY_MINUTE_INTERVAL, key)
+        strategy.on_candle_close(last_15_chart, last_60_chart)
     except:
         get_data(strategy, BACKUP_API_KEY)
 
@@ -485,9 +462,9 @@ def scheduler(strategy):
 
 if __name__ == '__main__':
     strategy = Strategy()
-    # # PLOT
-    # ani = FuncAnimation(strategy.fig, strategy.animate,
-    #                     interval=ANIMATION_STREAM)
+    # PLOT
+    ani = FuncAnimation(strategy.fig, strategy.animate,
+                        interval=ANIMATION_STREAM)
 
-    x = threading.Thread(target=scheduler, args=(strategy,), daemon=False)
+    x = threading.Thread(target=scheduler, args=(strategy,), daemon=True)
     x.start()
