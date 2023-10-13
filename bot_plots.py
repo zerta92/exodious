@@ -309,6 +309,7 @@ class Strategy:
         buy_and_sell_stat = self.do_rsi_checks(rsi_60)
         ema_buy_check = False
 
+        # todo: sort this trade criteria
         if ((ema_fast > ema_slow) and (ema_fast_long > ema_slow_long)):
             ema_buy_check = True
         print('BEGIN trading: ', self.begin_trading)
