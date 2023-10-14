@@ -55,7 +55,7 @@ def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=No
         close_values.append(current_exchange)
         new_df = pd.DataFrame(close_values)
         ema = new_df.ewm(span=ema_period, adjust=False).mean()
-        return ema.iloc[-1]
+        return ema.iloc[-1][0]
     ema = data[close_column].ewm(span=ema_period, adjust=False).mean()
     return ema.iloc[-1]
 

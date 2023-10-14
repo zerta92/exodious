@@ -23,12 +23,12 @@ TO_CURRENCY = 'USD'
 SHORT_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_MONTHLY'
 
-STREAM_INTERVAL = 2  # min
+STREAM_INTERVAL = 2  # min - should be 30 since we only get 100 requests per day
 ANIMATION_STREAM = (STREAM_INTERVAL + 0.1)*60 * 1000  # millisec
 
-FAST = 20
-SLOW = 25
-RSI_SETTING = 5
+FAST = 5
+SLOW = 15
+RSI_SETTING = 4
 OVERBOUGHT = 66.66
 OVERSOLD = 33.33
 INSTRUMENT = 'USD_GBP'
@@ -240,7 +240,7 @@ class Strategy:
         log_emas(self.ema_fast, self.ema_slow,
                  self.prev_ema_fast, self.prev_ema_slow)
 
-        ema_signal_crossover = self.get_ema_signal(
+        ema_signal_crossover = self.get_ema_signal_crossover(
             self.ema_fast, self.ema_slow, self.prev_ema_fast, self.prev_ema_slow)
 
         # RSI
@@ -259,7 +259,7 @@ class Strategy:
             prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
         return [ema_slow, ema_fast]
 
-    def get_ema_signal(self, fast, slow, prev_fast, prev_slow):
+    def get_ema_signal_crossover(self, fast, slow, prev_fast, prev_slow):
         # check if first cross has occurred to begin trading
         if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):
             return True
