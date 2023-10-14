@@ -15,7 +15,7 @@ import requests
 
 from variables import FAST, SLOW, RSI_SETTING, OVERBOUGHT, OVERSOLD
 from utils.logging_utils import log_make_trades_data, log_emas, log_rsi
-from utils.utils import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
+from utils.utils import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
 
 API_KEY = 'R6ZSU4QDSJ052XQN'
 BACKUP_API_KEY = '3B01QWGPBVQBKLG2'

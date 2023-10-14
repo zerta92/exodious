@@ -2,7 +2,7 @@
 
 from test_data import data
 import pandas as pd
-from ..utils.utils import get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
+from ..utils.utils import get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
 
 
 FAST = 5
