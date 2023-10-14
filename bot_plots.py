@@ -13,8 +13,10 @@ import logging
 # from datetime import datetime
 import schedule
 import requests
+
+from variables import FAST, SLOW, RSI_SETTING, OVERBOUGHT, OVERSOLD
 from logging_test import log_make_trades_data, log_emas, log_rsi
-from utils_test import calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
+from utils_test import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
 
 API_KEY = 'R6ZSU4QDSJ052XQN'
 BACKUP_API_KEY = '3B01QWGPBVQBKLG2'
@@ -26,11 +28,6 @@ LONG_WINDOW = 'DIGITAL_CURRENCY_MONTHLY'
 STREAM_INTERVAL = 2  # min - should be 30 since we only get 100 requests per day
 ANIMATION_STREAM = (STREAM_INTERVAL + 0.1)*60 * 1000  # millisec
 
-FAST = 5
-SLOW = 15
-RSI_SETTING = 4
-OVERBOUGHT = 66.66
-OVERSOLD = 33.33
 INSTRUMENT = 'USD_GBP'
 BUY_UNITS = '3000'
 SELL_UNITS = '3000'
@@ -176,8 +173,8 @@ class Strategy:
         self.axs[1].tick_params(axis='y', labelcolor=color)
 
     def make_trades(self, exchange_rate):
-        rsi_signal = self.get_rsi_signal()
-        ema_signal = self.get_ema_signal()
+        rsi_signal = get_rsi_signal(self.current_rsi, self.previous_rsi)
+        ema_signal = get_ema_signal(self.ema_fast, self.ema_slow,)
         log_make_trades_data(self.ema_fast, self.ema_slow, self.current_rsi,
                              self.previous_rsi, self.in_long, self.in_short)
 
@@ -240,7 +237,7 @@ class Strategy:
         log_emas(self.ema_fast, self.ema_slow,
                  self.prev_ema_fast, self.prev_ema_slow)
 
-        ema_signal_crossover = self.get_ema_signal_crossover(
+        ema_signal_crossover = get_ema_signal_crossover(
             self.ema_fast, self.ema_slow, self.prev_ema_fast, self.prev_ema_slow)
 
         # RSI
@@ -258,43 +255,6 @@ class Strategy:
         ema_slow = calculate_ema(
             prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
         return [ema_slow, ema_fast]
-
-    def get_ema_signal_crossover(self, fast, slow, prev_fast, prev_slow):
-        # check if first cross has occurred to begin trading
-        if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):
-            return True
-        return False
-
-    def get_ema_signal(self):
-        # Determine EMA signal based on the relationship between fast and slow EMAs
-        if self.fast > self.slow:
-            return 'BUY'
-        elif self.fast < self.slow:
-            return 'SELL'
-        else:
-            return 'HOLD'
-
-    def get_rsi_signal(self):
-        current = float(self.current_rsi)
-        previous = float(self.previous_rsi)
-        delta = previous-current
-        if current >= OVERSOLD and previous < OVERSOLD and current >= OVERSOLD:
-            return 'BUY'
-        if current <= OVERBOUGHT and previous > OVERBOUGHT and current != 0:
-            return 'SELL'
-        # Failure Swing: Bottom
-        if current >= OVERBOUGHT and previous < OVERBOUGHT and current >= OVERBOUGHT and not self.in_long:
-            return 'BUY'
-        # Failure Swing: Top
-        if current <= OVERSOLD and previous > OVERSOLD and current != 0:
-            self.deffered_until_crossover = False
-            if self.in_long:
-                return 'SELL'
-        if delta <= -8 and self.in_long:  # and current > OVERBOUGHT
-            send_error_to_firebase("Delta dropped more than 8%")
-            self.deffered_until_crossover = True
-            return 'SELL'
-        return ''
 
     def get_granular_data(self, window, key):
         api_url_forex_intraday = 'https://www.alphavantage.co/query?function={}&symbol={}&market={}&outputsize=full&apikey={}'.format(window,

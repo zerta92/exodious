@@ -3,6 +3,7 @@
 import pandas as pd
 from datetime import datetime
 from firebase_test import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
+from variables import OVERBOUGHT, OVERSOLD
 
 
 __all__ = ['send_metrics_to_firebase', 'send_error_to_firebase',
@@ -58,6 +59,42 @@ def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=No
         return ema.iloc[-1][0]
     ema = data[close_column].ewm(span=ema_period, adjust=False).mean()
     return ema.iloc[-1]
+
+
+def get_ema_signal_crossover(fast, slow, prev_fast, prev_slow):
+    # check if first cross has occurred to begin trading
+    if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):
+        return True
+    return False
+
+
+def get_ema_signal(fast, slow):
+    # Determine EMA signal based on the relationship between fast and slow EMAs
+    if fast > slow:
+        return 'BUY'
+    elif fast < slow:
+        return 'SELL'
+    else:
+        return 'HOLD'
+
+
+def get_rsi_signal(current_rsi, previous_rsi):
+    current = float(current_rsi)
+    previous = float(previous_rsi)
+    delta = previous-current
+    if current >= OVERSOLD and previous < OVERSOLD and current >= OVERSOLD:
+        return 'BUY'
+    if current <= OVERBOUGHT and previous > OVERBOUGHT and current != 0:
+        return 'SELL'
+    # Failure Swing: Bottom
+    if current >= OVERBOUGHT and previous < OVERBOUGHT and current >= OVERBOUGHT:
+        return 'BUY'
+    # Failure Swing: Top
+    if current <= OVERSOLD and previous > OVERSOLD and current != 0:
+        return 'SELL'
+    if delta <= -8:  # and current > OVERBOUGHT
+        return 'SELL'
+    return ''
 
 
 def calc_rsi(price, RSI_SETTING):

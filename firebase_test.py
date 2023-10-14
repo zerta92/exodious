@@ -116,6 +116,3 @@ def formatMetrics(metrics):
         "rsi_15": rsi_15,
         "rsi_60": rsi_60,
     }
-
-
-print(get_latest_long_or_short())

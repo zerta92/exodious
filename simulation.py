@@ -4,11 +4,10 @@ import numpy as np
 
 
 from test_data import data
-from utils_test import calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
+from utils_test import get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
 
 FAST = 5
 SLOW = 15
-
 RSI_SETTING = 4
 OVERBOUGHT = 66.66
 OVERSOLD = 33.33
@@ -47,48 +46,12 @@ def format_data(data):
     return df
 
 
-def get_ema_signal_crossover(fast, slow, prev_fast, prev_slow):
-    # check if first cross has occurred to begin trading
-    if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):
-        return True
-    return False
-
-
 def get_emas(prev_ema_df, exchange_rate=None):
     ema_fast = calculate_ema(
         prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
     ema_slow = calculate_ema(
         prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
     return [ema_slow, ema_fast]
-
-
-def get_ema_signal(fast, slow):
-    # Determine EMA signal based on the relationship between fast and slow EMAs
-    if fast > slow:
-        return 'BUY'
-    elif fast < slow:
-        return 'SELL'
-    else:
-        return 'HOLD'
-
-
-def get_rsi_signal(current_rsi, previous_rsi):
-    current = float(current_rsi)
-    previous = float(previous_rsi)
-    delta = previous-current
-    if current >= OVERSOLD and previous < OVERSOLD and current >= OVERSOLD:
-        return 'BUY'
-    if current <= OVERBOUGHT and previous > OVERBOUGHT and current != 0:
-        return 'SELL'
-    # Failure Swing: Bottom
-    if current >= OVERBOUGHT and previous < OVERBOUGHT and current >= OVERBOUGHT:
-        return 'BUY'
-    # Failure Swing: Top
-    if current <= OVERSOLD and previous > OVERSOLD and current != 0:
-        return 'SELL'
-    if delta <= -8:  # and current > OVERBOUGHT
-        return 'SELL'
-    return ''
 
 
 def analyze_trades(trades):
@@ -201,7 +164,6 @@ def run(df):
                 if not in_long:
                     in_short = False
                     in_long = True
-                    print("BUY")
                     amount_to_buy = int(current_amount_usd/exchange_rate)
                     cost = amount_to_buy * exchange_rate
                     current_amount_usd -= cost
@@ -213,7 +175,6 @@ def run(df):
                 if not in_short:
                     in_short = True
                     in_long = False
-                    print("SELL")
                     amount_to_sell = stock_amount
                     revenue = amount_to_sell * exchange_rate
                     current_amount_usd += revenue
@@ -223,7 +184,6 @@ def run(df):
 
             elif ema_signal == 'SELL' and rsi_signal == 'BUY':
                 if in_long:
-                    print("SELL")
                     in_short = True
                     in_long = False
                     amount_to_sell = stock_amount
@@ -235,7 +195,6 @@ def run(df):
 
             elif ema_signal == 'BUY' and rsi_signal == 'SELL':
                 if in_short:
-                    print("BUY")
                     in_short = False
                     in_long = True
                     amount_to_buy = int(current_amount_usd/exchange_rate)
@@ -253,5 +212,6 @@ def run(df):
     print('profit: ', current_amount_usd-starting_amount_usd)
 
 
-data = get_data_points()
-run(data)
+if __name__ == '__main__':
+    data = get_data_points()
+    run(data)
