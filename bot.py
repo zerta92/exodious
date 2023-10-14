@@ -30,9 +30,8 @@ ANIMATION_STREAM = (STREAM_INTERVAL + 0.1)*60 * 1000  # millisec
 INSTRUMENT = 'USD_GBP'
 BUY_UNITS = '3000'
 SELL_UNITS = '3000'
-BUY_TRANSACTION_FEE = .00428
-SELL_TRANSACTION_FEE = .00348
 
+# IG
 BUY = json.dumps({
     "order": {
         "instrument": INSTRUMENT,
