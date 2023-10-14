@@ -88,12 +88,12 @@ class Strategy:
         self.previous_rsi = rsi.iloc[-1]
 
         # EMA
-        self.ema_fast = 0
-        self.ema_slow = 0
         ema_fast_short = calculate_ema(
             prev_data_df, close_column='Close', ema_period=FAST)
         ema_slow_short = calculate_ema(
             prev_data_df, close_column='Close', ema_period=SLOW)
+        self.ema_fast = ema_fast_short
+        self.ema_slow = ema_slow_short
         self.prev_ema_fast = ema_fast_short
         self.prev_ema_slow = ema_slow_short
 
@@ -244,9 +244,9 @@ class Strategy:
             self.ema_fast, self.ema_slow, self.prev_ema_fast, self.prev_ema_slow)
 
         # RSI
+        rsi = calc_rsi(prev_ema_df, RSI_SETTING)
         self.previous_rsi = self.current_rsi
         self.current_rsi = rsi.iloc[-1]
-        rsi = calc_rsi(prev_ema_df, RSI_SETTING)
         log_rsi(self.previous_rsi, self.current_rsi)
 
         if last_close != exchange_rate and ema_signal_crossover:
