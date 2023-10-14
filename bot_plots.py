@@ -1,5 +1,4 @@
 # https://code.visualstudio.com/docs/python/python-tutorial
-# import numpy as np
 import pandas as pd
 import json
 
@@ -10,7 +9,7 @@ import threading
 import time
 
 import logging
-# from datetime import datetime
+
 import schedule
 import requests
 
