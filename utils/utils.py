@@ -4,7 +4,7 @@ from .firebase_utils import send_metrics, send_error, send_notifications, update
 import pandas as pd
 from datetime import datetime
 
-from variables import OVERBOUGHT, OVERSOLD
+from variables import OVERBOUGHT, OVERSOLD, FAST, SLOW
 
 OVERBOUGHT = 60
 OVERSOLD = 30
