@@ -6,8 +6,6 @@ from datetime import datetime
 
 from variables import OVERBOUGHT, OVERSOLD, FAST, SLOW
 
-OVERBOUGHT = 60
-OVERSOLD = 30
 __all__ = ['send_metrics_to_firebase', 'send_error_to_firebase',
            'send_notifications_to_firebase', "get_latest_metrics_from_firebase", "get_latest_long_or_short_from_firebase"]
 

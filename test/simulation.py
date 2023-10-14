@@ -3,10 +3,8 @@
 # run from main path with python -m test.simulation
 
 from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
-import sys
 from .test_data import data
 import pandas as pd
-sys.path.append("..")
 
 
 FAST = 5
