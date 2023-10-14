@@ -63,6 +63,14 @@ def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=No
     return ema.iloc[-1]
 
 
+def get_emas(prev_ema_df, exchange_rate=None):
+    ema_fast = calculate_ema(
+        prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
+    ema_slow = calculate_ema(
+        prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
+    return [ema_slow, ema_fast]
+
+
 def get_ema_signal_crossover(fast, slow, prev_fast, prev_slow):
     # check if first cross has occurred to begin trading
     if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):

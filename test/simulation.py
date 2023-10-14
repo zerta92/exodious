@@ -2,7 +2,7 @@
 
 from test_data import data
 import pandas as pd
-from ..utils.utils import get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
+from ..utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
 
 
 FAST = 5
@@ -43,14 +43,6 @@ def format_data(data):
     df["Low"] = pd.to_numeric(df["Low"], downcast="float")
 
     return df
-
-
-def get_emas(prev_ema_df, exchange_rate=None):
-    ema_fast = calculate_ema(
-        prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
-    ema_slow = calculate_ema(
-        prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
-    return [ema_slow, ema_fast]
 
 
 def analyze_trades(trades):

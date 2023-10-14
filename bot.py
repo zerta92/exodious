@@ -14,7 +14,7 @@ import requests
 
 from variables import FAST, SLOW, RSI_SETTING, OVERBOUGHT, OVERSOLD
 from utils.logging_utils import log_make_trades_data, log_emas, log_rsi
-from utils.utils import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
+from utils.utils import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
 
 API_KEY = 'R6ZSU4QDSJ052XQN'
 BACKUP_API_KEY = '3B01QWGPBVQBKLG2'
@@ -223,9 +223,9 @@ class Strategy:
         self.last_completed_candle_df = prev_ema_df.iloc[-1]
 
         # EMA
-        ema_with_current_rate = self.get_emas(
+        ema_with_current_rate = get_emas(
             prev_ema_df, exchange_rate)
-        ema_without_current_rate = self.get_emas(prev_ema_df)
+        ema_without_current_rate = get_emas(prev_ema_df)
 
         self.ema_slow = ema_with_current_rate[0]
         self.ema_fast = ema_with_current_rate[1]
@@ -245,13 +245,6 @@ class Strategy:
 
         if last_close != exchange_rate and ema_signal_crossover:
             self.make_trades(exchange_rate)
-
-    def get_emas(self, prev_ema_df, exchange_rate=None):
-        ema_fast = calculate_ema(
-            prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
-        ema_slow = calculate_ema(
-            prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
-        return [ema_slow, ema_fast]
 
     def get_granular_data(self, window, key):
         api_url_forex_intraday = 'https://www.alphavantage.co/query?function={}&symbol={}&market={}&outputsize=full&apikey={}'.format(window,
