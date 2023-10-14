@@ -39,6 +39,7 @@ BUY = json.dumps({
         "positionFill": "DEFAULT"
     }
 })
+
 SELL = json.dumps({
     "order": {
         "instrument": INSTRUMENT,
