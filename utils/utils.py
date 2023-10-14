@@ -1,11 +1,13 @@
 
 
+from .firebase_utils import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
 import pandas as pd
 from datetime import datetime
-from firebase_test import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
+
 from variables import OVERBOUGHT, OVERSOLD
 
-
+OVERBOUGHT = 60
+OVERSOLD = 30
 __all__ = ['send_metrics_to_firebase', 'send_error_to_firebase',
            'send_notifications_to_firebase', "get_latest_metrics_from_firebase", "get_latest_long_or_short_from_firebase"]
 
