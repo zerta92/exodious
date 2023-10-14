@@ -1,5 +1,6 @@
 
 
+import pandas as pd
 from datetime import datetime
 from firebase_test import send_metrics, send_error, send_notifications, update_firebase_snapshot, get_latest_metrics, get_latest_long_or_short, send_ig_info
 
@@ -49,24 +50,30 @@ def send_ig_info_to_firebase(info):
 
 def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=None):
     df = data.copy()  # Avoid modifying the original DataFrame
+    if current_exchange:
+        close_values = df[close_column].tolist()
+        close_values.append(current_exchange)
+        new_df = pd.DataFrame(close_values)
+        ema = new_df.ewm(span=ema_period, adjust=False).mean()
+        return ema.iloc[-1]
+    ema = data[close_column].ewm(span=ema_period, adjust=False).mean()
+    return ema.iloc[-1]
 
-    alpha = 2 / (ema_period + 1)
-    # Initial value is the first close price
-    ema_values = [df[close_column].iloc[0]]
 
-    for i in range(1, len(df)):
-        if current_exchange is not None:
-            # Adjust EMA calculation based on current exchange
-            ema = alpha * df[close_column].iloc[i] + \
-                (1 - alpha) * ema_values[-1] * current_exchange
-        else:
-            ema = alpha * df[close_column].iloc[i] + \
-                (1 - alpha) * ema_values[-1]
-        ema_values.append(ema)
+def calc_rsi(price, RSI_SETTING):
+    delta = price['Close']
+    diff = delta.diff()
+    dUp, dDown = diff.copy(), diff.copy()
+    dUp[dUp < 0] = 0
+    dDown[dDown > 0] = 0
+    RolUp = dUp.rolling(RSI_SETTING).mean()  # pd.rolling_mean(dUp, n)
+    # pd.rolling_mean(dDown, n).abs()
+    RolDown = dDown.rolling(RSI_SETTING).mean().abs()
+    RS = RolUp / RolDown
+    RS = RS.fillna(value=0)
+    rsi = 100.0 - (100.0 / (1.0 + RS))
 
-    df['EMA'] = ema_values
-
-    return df
+    return rsi
 
 
 def snake_case_to_proper_case(input_string):

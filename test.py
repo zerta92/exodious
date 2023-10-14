@@ -14,34 +14,34 @@ import pandas as pd
 # import plotly.graph_objects as go
 # from plotly.subplots import make_subplots
 
-# import tkinter as tk
-# from tkinter import filedialog
+import tkinter as tk
+from tkinter import filedialog
 
 
-# def read_csv_file():
-#     file_path = filedialog.askopenfilename(title=' Please choose File ')
-#     file = pd.read_csv(file_path)
-#     return file
+def read_csv_file():
+    file_path = filedialog.askopenfilename(title=' Please choose File ')
+    file = pd.read_csv(file_path)
+    return file
 
 
-# def test_make_trades():
-#     strategy = bot.EMAStrategy()
-#     strategy.slow = 0.9
-#     strategy.fast = 0.8
-#     strategy.last_completed_candle = 0.85
-#     strategy.make_trades()
+def test_make_trades():
+    strategy = bot.EMAStrategy()
+    strategy.slow = 0.9
+    strategy.fast = 0.8
+    strategy.last_completed_candle = 0.85
+    strategy.make_trades()
 
-# # test_make_trades()
-
-
-# def test_get_granular_data():
-#     strategy = bot.Strategy()
-#     return strategy.get_granular_data()
+# test_make_trades()
 
 
-# def calc_emas_test():
-#     strategy = bot.Strategy()
-#     return strategy.calc_emas()
+def test_get_granular_data():
+    strategy = bot.Strategy()
+    return strategy.get_granular_data()
+
+
+def calc_emas_test():
+    strategy = bot.Strategy()
+    return strategy.calc_emas()
 
 
 def get_emas(df):
@@ -121,52 +121,32 @@ def createRandomData(seed):
 
 
 def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=None):
-    """
-    Calculate Exponential Moving Average (EMA) for a given column in a DataFrame.
-
-    Parameters:
-        - data: DataFrame containing the financial data.
-        - close_column: Name of the column for which EMA needs to be calculated.
-        - ema_period: Time period for EMA calculation (default is 14).
-
-    Returns:
-        DataFrame with an additional column 'EMA' containing EMA values.
-    """
     df = data.copy()  # Avoid modifying the original DataFrame
-
-    # Calculate EMA using a simple Python loop
-    alpha = 2 / (ema_period + 1)
-    # Initial value is the first close price
-    ema_values = [df[close_column].iloc[0]]
-
-    for i in range(1, len(df)):
-        if current_exchange is not None:
-            # Adjust EMA calculation based on current exchange
-            ema = alpha * df[close_column].iloc[i] + \
-                (1 - alpha) * ema_values[-1] * current_exchange
-        else:
-            ema = alpha * df[close_column].iloc[i] + \
-                (1 - alpha) * ema_values[-1]
-        ema_values.append(ema)
-
-    df['EMA'] = ema_values
-
-    return df
+    if current_exchange:
+        print('here')
+        close_values = df[close_column].tolist()
+        close_values.append(current_exchange)
+        new_df = pd.DataFrame(close_values)
+        ema = new_df.ewm(span=ema_period, adjust=False).mean()
+        print(ema)
+        return ema.iloc[-1]
+    print('here2')
+    ema = data[close_column].ewm(span=ema_period, adjust=False).mean()
+    print(ema)
+    return ema.iloc[-1]
 
 
 random_data = createRandomData(42)
-print(random_data)
-# ema = calculate_ema(random_data, close_column='Close', ema_period=14)
-# print(ema)
-# print(ema.iloc[-1])
+# print(random_data)
+ema = calculate_ema(random_data, close_column='Close',
+                    ema_period=14, current_exchange=90)
+
+print(ema)
 
 
 # csv = read_csv_file()
 # csv = csv.set_index('Local time')
 # print(csv)
-send_notifications_to_firebase(
-    {'buy': False, 'sell': True, 'mid': 66, 'begin_trading': True})
-
 
 # data = pd.DataFrame({'Time': csv.index, 'RSI': rsi, 'EMA_FAST': ema_fast,
 #                     'EMA_SLOW': ema_slow, 'CLOSE': csv['Close']})

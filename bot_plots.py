@@ -2,10 +2,7 @@
 # import numpy as np
 import pandas as pd
 import json
-import btalib
-# import mplfinance as mpf
 
-# import matplotlib as m
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -16,11 +13,11 @@ import logging
 # from datetime import datetime
 import schedule
 import requests
+from logging_test import log_make_trades_data, log_emas, log_rsi
+from utils_test import calculate_ema, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
 
-from utils_test import calculate_ema, snake_case_to_proper_case, send_notifications_to_firebase, send_error_to_firebase
-
-API_KEY = '3B01QWGPBVQBKLG2'
-BACKUP_API_KEY = 'R6ZSU4QDSJ052XQN'
+API_KEY = 'R6ZSU4QDSJ052XQN'
+BACKUP_API_KEY = '3B01QWGPBVQBKLG2'
 FROM_CURRENCY = 'BTC'
 TO_CURRENCY = 'USD'
 SHORT_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
@@ -78,30 +75,27 @@ class Strategy:
         # GENERAL
         prev_data_df = self.get_granular_data(SHORT_WINDOW, API_KEY)
 
-        self.last_completed_candle = prev_data_df.iloc[-1]
+        self.last_completed_candle_df = prev_data_df.iloc[-1]
         self.in_long = False
         self.in_short = False
-        self.ema_begin_trading_flag = False
         self.force_buy = False
         self.force_sell = False
 
         # RSI
         self.current_rsi = 0
-        rsi = self.calc_rsi(prev_data_df)
-        print(rsi)
+        rsi = calc_rsi(prev_data_df, RSI_SETTING)
         self.current_rsi = rsi.iloc[-1]
         self.previous_rsi = rsi.iloc[-1]
 
-        # EMA Short Window
-        self.fast = 0
-        self.slow = 0
-
+        # EMA
+        self.ema_fast = 0
+        self.ema_slow = 0
         ema_fast_short = calculate_ema(
-            prev_data_df, close_column='Close', ema_period=FAST)['EMA']
+            prev_data_df, close_column='Close', ema_period=FAST)
         ema_slow_short = calculate_ema(
-            prev_data_df, close_column='Close', ema_period=SLOW)['EMA']
-        self.prev_fast_short = ema_fast_short.iloc[-1]
-        self.prev_slow_short = ema_slow_short.iloc[-1]
+            prev_data_df, close_column='Close', ema_period=SLOW)
+        self.prev_ema_fast = ema_fast_short
+        self.prev_ema_slow = ema_slow_short
 
         # LOG
         self.total = float(5000)
@@ -151,7 +145,7 @@ class Strategy:
     def animate(self, i):
         time = i
         self.index_counter = time
-        last_close = float(self.last_completed_candle['Close'])
+        last_close = float(self.last_completed_candle_df['Close'])
         self.y1.append(float(last_close))
         self.x1.append(time)
         self.line.set_data(self.x1, self.y1)
@@ -160,11 +154,11 @@ class Strategy:
         self.axs[0].plot(self.x_sells, self.sell_marks,
                          marker='X', color='red')
 
-        self.y2.append(float(self.prev_slow_short))
+        self.y2.append(float(self.prev_ema_slow))
         self.x2.append(time)
         self.line2.set_data(self.x2, self.y2)
 
-        self.y3.append(float(self.prev_fast_short))
+        self.y3.append(float(self.prev_ema_fast))
         self.x3.append(time)
         self.line3.set_data(self.x3, self.y3)
 
@@ -182,139 +176,107 @@ class Strategy:
         self.axs[1].tick_params(axis='y', labelcolor=color)
 
     def make_trades(self, exchange_rate):
-        rsi_signal = self.get_rsi_signal(
-            self.current_rsi, self.previous_rsi)
-        bid_price = exchange_rate
-        ask_price = exchange_rate
-        mid = (bid_price + ask_price)/2
+        rsi_signal = self.get_rsi_signal()
+        ema_signal = self.get_ema_signal()
+        log_make_trades_data(self.ema_fast, self.ema_slow, self.current_rsi,
+                             self.previous_rsi, self.in_long, self.in_short)
 
-        logging.critical(' FAST: '+str(self.fast))
-        logging.critical(' SLOW: '+str(self.slow))
-        logging.critical(' RSI: '+str(self.current_rsi))
-
-        logging.critical('GBP:' + str(self.gbp))
-        logging.critical('USD:' + str(self.usd))
-        logging.critical("in_long: "+str(self.in_long))
-        logging.critical("in_short: "+str(self.in_short))
-
-        if self.fast > self.slow and rsi_signal == 'BUY':
-            if self.in_short:
-                self.in_short = False
-                logging.critical('CLOSE ' + INSTRUMENT + ' ' + json.loads(BUY)
-                                 ['order']['units'] + ' units at ask: ' + str(mid))
+        # Combination of RSI and EMA signals
+        if ema_signal == 'BUY' and rsi_signal == 'BUY':
             if not self.in_long:
-                buy_units = float(json.loads(BUY)['order']['units'])
-                fee = buy_units*(BUY_TRANSACTION_FEE)
-                self.in_long = True
-                self.gbp = self.gbp + buy_units
-                self.usd = self.usd - float(mid)*buy_units
-                self.profit = self.profit - fee
+                self.execute_buy(exchange_rate)
 
-                #  Graph points
-                self.last_buy = mid
-                self.buy_marks.append(self.last_buy)
-                self.x_buys.append(self.index_counter)
-
-                logging.critical('BUY ' + INSTRUMENT + ' ' + json.loads(BUY)
-                                 ['order']['units'] + ' units at bid: ' + str(mid))
-                send_notifications_to_firebase(
-                    {'buy': True, 'sell': False, 'mid': mid, 'begin_trading': self.ema_begin_trading_flag})
-
-        if (self.fast < self.slow and rsi_signal == 'SELL'):
-            if self.in_long:
-                self.in_long = False
-                logging.critical('CLOSE ' + INSTRUMENT + ' ' + json.loads(SELL)
-                                 ['order']['units'] + ' units at bid: ' + str(mid))
+        elif ema_signal == 'SELL' and rsi_signal == 'SELL':
             if not self.in_short:
-                sell_units = float(json.loads(SELL)['order']['units']) * -1
-                fee = sell_units*(SELL_TRANSACTION_FEE)
-                self.in_short = True
-                self.gbp = self.gbp - sell_units
-                self.usd = self.usd + float(mid)*float(sell_units)
-                self.profit = self.profit + \
-                    ((mid - self.last_buy) * sell_units) - fee
-                self.last_sell = mid
-                self.sell_marks.append(self.last_sell)
-                self.x_sells.append(self.index_counter)
-                self.force_sell = False
+                self.execute_sell(exchange_rate)
 
-                logging.critical('SELL ' + INSTRUMENT + ' ' + json.loads(SELL)
-                                 ['order']['units'] + ' units at bid: ' + str(mid))
-                logging.critical('GBP:' + str(self.gbp))
-                logging.critical('USD:' + str(self.usd))
-                logging.critical('PROFIT:' + str(self.profit))
-                logging.critical('FEE:' + str(fee))
-                send_notifications_to_firebase(
-                    {'buy': False, 'sell': True, 'mid': mid, 'begin_trading': self.ema_begin_trading_flag})
+        elif ema_signal == 'SELL' and rsi_signal == 'BUY':
+            if self.in_long:
+                self.execute_sell(exchange_rate)
 
-    def check_if_meet_trade_parameters(self, mid, transaction):
-        print('SELL CHECK')
-        print('LAST BUY PRICE:' + str(self.last_buy))
-        print('SELL PRICE:' + str(mid))
-        # check if at least 1% gain
-        is_more_than_fee = False
-        # if transaction == 'BUY':
-        #     meets_one_percent = mid * 0.99 >= float(self.last_buy)
-        #     print('BUY PRICE:' + str(ask_price))
-        if transaction == 'SELL':
-            is_more_than_fee = mid - \
-                float(self.last_buy) > (SELL_TRANSACTION_FEE)
+        elif ema_signal == 'BUY' and rsi_signal == 'SELL':
+            if self.in_short:
+                self.execute_buy(exchange_rate)
 
-        return is_more_than_fee
+    def execute_sell(self, exchange_rate):
+        self.in_short = True
+        self.in_long = False
+        self.sell_marks.append(exchange_rate)
+        self.x_sells.append(self.index_counter)
+        self.last_sell = exchange_rate
+        logging.critical('SELL ' + INSTRUMENT + ' ' + json.loads(SELL)
+                         ['order']['units'] + ' units at bid: ' + str(exchange_rate))
+        send_notifications_to_firebase(
+            {'buy': False, 'sell': True, 'mid': exchange_rate, 'begin_trading': True})
 
-    # Handles functions for every next candle closed
-    def on_candle_close(self, prev_data_df_short, exchange_rate):
+    def execute_buy(self, exchange_rate):
+        self.in_short = False
+        self.in_long = True
+        self.buy_marks.append(exchange_rate)
+        self.x_buys.append(self.index_counter)
+        self.last_buy = exchange_rate
+
+        logging.critical('BUY ' + INSTRUMENT + ' ' + json.loads(BUY)
+                         ['order']['units'] + ' units at bid: ' + str(exchange_rate))
+        send_notifications_to_firebase(
+            {'buy': True, 'sell': False, 'mid': exchange_rate, 'begin_trading': True})
+
+    def on_candle_close(self, prev_ema_df, exchange_rate):
         logging.critical(
-            'LAST CLOSE '+str(prev_data_df_short.iloc[-1]['Close']))
+            'Current exchange rate '+str(exchange_rate))
 
-        last_close = prev_data_df_short.iloc[-1]['Close']
+        last_close = float(prev_ema_df.iloc[-1]['Close'])
+        self.last_completed_candle_df = prev_ema_df.iloc[-1]
 
-        # short window chart
         # EMA
-        ema_short_calculations = self.calc_emas_short(
-            prev_data_df_short, exchange_rate)
+        ema_with_current_rate = self.get_emas(
+            prev_ema_df, exchange_rate)
+        ema_without_current_rate = self.get_emas(prev_ema_df)
 
-        ema_slow = ema_short_calculations[0]
-        ema_fast = ema_short_calculations[1]
+        self.ema_slow = ema_with_current_rate[0]
+        self.ema_fast = ema_with_current_rate[1]
+        self.prev_ema_slow = ema_without_current_rate[0]
+        self.prev_ema_fast = ema_without_current_rate[1]
+        log_emas(self.ema_fast, self.ema_slow,
+                 self.prev_ema_fast, self.prev_ema_slow)
+
+        ema_signal_crossover = self.get_ema_signal(
+            self.ema_fast, self.ema_slow, self.prev_ema_fast, self.prev_ema_slow)
 
         # RSI
         self.previous_rsi = self.current_rsi
-        rsi = self.calc_rsi(prev_data_df_short)
-        rsi_delta = self.check_rsi_delta(self.current_rsi, rsi.iloc[-1])
-        logging.critical("RSI: " + str(rsi.iloc[-1]))
         self.current_rsi = rsi.iloc[-1]
-        print('RSI: ', self.current_rsi)
+        rsi = calc_rsi(prev_ema_df, RSI_SETTING)
+        log_rsi(self.previous_rsi, self.current_rsi)
 
-        if float(last_close) != exchange_rate:
-            self.last_completed_candle = prev_data_df_short.iloc[-1]
-            if (self.ema_begin_trading_flag):
-                self.make_trades(exchange_rate)
+        if last_close != exchange_rate and ema_signal_crossover:
+            self.make_trades(exchange_rate)
 
-    def calc_ema(self, period, prev_ema, last_close_price):
-        '''Calculates the current EMA given a close price and the previous EMA'''
-        return (last_close_price - prev_ema) * (2 / (period + 1)) + prev_ema
+    def get_emas(self, prev_ema_df, exchange_rate=None):
+        ema_fast = calculate_ema(
+            prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
+        ema_slow = calculate_ema(
+            prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
+        return [ema_slow, ema_fast]
 
-    def calc_emas_short(self, prev_data_df_short, exchange_rate):
-        last_close = exchange_rate
-        # Calculate EMAs of last closed candlestick
-        self.fast = calculate_ema(
-            prev_data_df_short, close_column='Close', ema_period=FAST, current_exchange=last_close)
-        self.slow = calculate_ema(
-            prev_data_df_short, close_column='Close', ema_period=SLOW, current_exchange=last_close)
-        logging.critical('FAST EMA ' + str(self.fast))
-        logging.critical('SLOW EMA ' + str(self.slow))
+    def get_ema_signal(self, fast, slow, prev_fast, prev_slow):
         # check if first cross has occurred to begin trading
-        if (not self.ema_begin_trading_flag):
-            if ((self.prev_fast_short > self.prev_slow_short and self.fast < self.slow) or (self.prev_fast_short < self.prev_slow_short and self.fast > self.slow)):
-                self.ema_begin_trading_flag = True
-        # set prev EMAs to current EMAs for next candlestick's calculation
-        self.prev_fast_short = self.fast
-        self.prev_slow_short = self.slow
-        return [self.slow, self.fast]
+        if ((prev_fast > prev_slow and fast < slow) or (prev_fast < prev_slow and fast > slow)):
+            return True
+        return False
 
-    def get_rsi_signal(self, current_, previous_):
-        current = float(current_)
-        previous = float(previous_)
+    def get_ema_signal(self):
+        # Determine EMA signal based on the relationship between fast and slow EMAs
+        if self.fast > self.slow:
+            return 'BUY'
+        elif self.fast < self.slow:
+            return 'SELL'
+        else:
+            return 'HOLD'
+
+    def get_rsi_signal(self):
+        current = float(self.current_rsi)
+        previous = float(self.previous_rsi)
         delta = previous-current
         if current >= OVERSOLD and previous < OVERSOLD and current >= OVERSOLD:
             return 'BUY'
@@ -333,29 +295,6 @@ class Strategy:
             self.deffered_until_crossover = True
             return 'SELL'
         return ''
-
-    def calc_rsi(self, price):
-        delta = price['Close']
-        diff = delta.diff()
-        dUp, dDown = diff.copy(), diff.copy()
-        dUp[dUp < 0] = 0
-        dDown[dDown > 0] = 0
-        RolUp = dUp.rolling(RSI_SETTING).mean()  # pd.rolling_mean(dUp, n)
-        # pd.rolling_mean(dDown, n).abs()
-        RolDown = dDown.rolling(RSI_SETTING).mean().abs()
-        RS = RolUp / RolDown
-        RS = RS.fillna(value=0)
-        rsi = 100.0 - (100.0 / (1.0 + RS))
-
-        return rsi
-
-    def check_rsi_delta(self, current_, new_):
-        new = float(new_)
-        current = float(current_)
-        delta = new-current
-        if (delta >= 50 or delta <= -40):
-            self.force_sell = True
-        return delta
 
     def get_granular_data(self, window, key):
         api_url_forex_intraday = 'https://www.alphavantage.co/query?function={}&symbol={}&market={}&outputsize=full&apikey={}'.format(window,
@@ -429,17 +368,17 @@ class Strategy:
 
     def setup_plot(self):
         self.ani = FuncAnimation(self.fig, self.live_plot, fargs=(
-            self.fast, self.last_completed_candle), interval=400)
+            self.ema_fast, self.last_completed_candle_df), interval=400)
         plt.tight_layout()
         plt.show()
 
 
 def get_data(strategy, key):
     try:
-        prev_data_df_short = strategy.get_granular_data(SHORT_WINDOW, key)
+        prev_ema_df = strategy.get_granular_data(SHORT_WINDOW, key)
         exchange_rate = strategy.get_current_data()
         strategy.on_candle_close(
-            prev_data_df_short, exchange_rate)
+            prev_ema_df, exchange_rate)
     except:
         # If error it could be due to api key usage, try a different key
         get_data(strategy, BACKUP_API_KEY)
@@ -457,8 +396,8 @@ def scheduler(strategy):
 if __name__ == '__main__':
     strategy = Strategy()
     # # PLOT
-    # ani = FuncAnimation(strategy.fig, strategy.animate,
-    #                     interval=ANIMATION_STREAM)
+    ani = FuncAnimation(strategy.fig, strategy.animate,
+                        interval=ANIMATION_STREAM)
 
     # Begin worker on a different thread
     thread = threading.Thread(target=scheduler, args=(strategy,), daemon=False)
