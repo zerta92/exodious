@@ -236,6 +236,7 @@ class Strategy:
         log_emas(self.ema_fast, self.ema_slow,
                  self.prev_ema_fast, self.prev_ema_slow)
 
+        # Once a crossover is detected theres no more need to keep checking
         ema_signal_crossover = True if ema_signal_crossover else get_ema_signal_crossover(
             self.ema_fast, self.ema_slow, self.prev_ema_fast, self.prev_ema_slow)
 

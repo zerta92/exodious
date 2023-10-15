@@ -154,8 +154,8 @@ def run(df):
     # Iterate over data, skipping the initial values
     for index, exchange_rate in enumerate(values.tail(len(values)-initial_values_start).tolist()):
 
-        if index == 5:
-            break
+        # if index == 5:
+        #     break
 
         sliced_values_df = pd.DataFrame({
             'Close': values.head(initial_values_start+index),
@@ -171,11 +171,11 @@ def run(df):
         # EMA
         ema_with_current_rate = get_emas(
             sliced_values_df, exchange_rate, FAST, SLOW)
-        ema_without_current_rate = get_emas(sliced_values_df, FAST, SLOW)
+
+        prev_ema_slow = ema_slow
+        prev_ema_fast = ema_fast
         ema_slow = ema_with_current_rate[0]
         ema_fast = ema_with_current_rate[1]
-        prev_ema_slow = ema_without_current_rate[0]
-        prev_ema_fast = ema_without_current_rate[1]
 
         ema_signal_crossover = True if ema_signal_crossover else get_ema_signal_crossover(
             ema_fast, ema_slow, prev_ema_fast, prev_ema_slow)
