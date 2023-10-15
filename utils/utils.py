@@ -126,3 +126,10 @@ def snake_case_to_proper_case(input_string):
     proper_case_words = [word.capitalize() for word in words]
     result_string = ' '.join(proper_case_words)
     return result_string
+
+
+def check_keys_for_string(json_obj, target_string):
+    for key in json_obj.keys():
+        if target_string in key:
+            return True
+    return False

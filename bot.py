@@ -14,14 +14,15 @@ import requests
 
 from variables import FAST, SLOW, RSI_SETTING, OVERBOUGHT, OVERSOLD
 from utils.logging_utils import log_make_trades_data, log_emas, log_rsi
-from utils.utils import get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
+from utils.utils import check_keys_for_string, get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
+from utils.firebase_utils import get_latest_long_or_short
 
 API_KEY = 'R6ZSU4QDSJ052XQN'
 BACKUP_API_KEY = '3B01QWGPBVQBKLG2'
 FROM_CURRENCY = 'BTC'
 TO_CURRENCY = 'USD'
-SHORT_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
-LONG_WINDOW = 'DIGITAL_CURRENCY_MONTHLY'
+SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
+LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
 
 STREAM_INTERVAL = 30  # min
 ANIMATION_STREAM = (STREAM_INTERVAL + 0.1) * 60 * 1000  # millisec
@@ -71,8 +72,8 @@ class Strategy:
         prev_data_df = self.get_granular_data(SHORT_WINDOW, API_KEY)
 
         self.last_completed_candle_df = prev_data_df.iloc[-1]
-        self.in_long = False
-        self.in_short = False
+        self.in_long = get_latest_long_or_short()['buy']
+        self.in_short = not self.in_long
         self.force_buy = False
         self.force_sell = False
 

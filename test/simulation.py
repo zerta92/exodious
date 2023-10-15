@@ -2,7 +2,7 @@
 
 # run from main path with python -m test.simulation
 
-from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
+from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
 from .test_data import data_btc_weekly as data
 import pandas as pd
 
@@ -22,13 +22,6 @@ RSI_SETTING = 12
 
 SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
-
-
-def check_keys_for_string(json_obj, target_string):
-    for key in json_obj.keys():
-        if target_string in key:
-            return True
-    return False
 
 
 def get_data_points():
