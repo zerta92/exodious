@@ -3,22 +3,18 @@ import matplotlib.pyplot as plt
 # run from main path with python -m test.simulation
 
 from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
-from .test_data import data_btc_weekly as data
+from .test_data import data_btc_daily as data
 import pandas as pd
 
 # For Daily Data
-# FAST = 5
-# SLOW = 25
-# RSI_SETTING = 4
+# FAST = 25
+# SLOW = 50
+# RSI_SETTING = 3
 
-# For weekly Data
-# FAST = 1
-# SLOW = 5
-# RSI_SETTING = 12
 
 FAST = 5
 SLOW = 50
-RSI_SETTING = 4
+RSI_SETTING = 3
 
 SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
@@ -241,8 +237,6 @@ def run(df):
                         {'buy': exchange_rate, 'usd': current_amount_usd, 'amount_to_buy': amount_to_buy})
 
     successfull_trades = analyze_trades(trades)
-    print(trades)
-    print(successfull_trades)
     print('starting_amount_usd: ', starting_amount_usd)
     print('current_amount_usd: ', current_amount_usd)
     print('profit: ', current_amount_usd-starting_amount_usd)
