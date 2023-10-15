@@ -3,21 +3,43 @@
 # run from main path with python -m test.simulation
 
 from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case
-from .test_data import data
+from .test_data import data_btc_weekly as data
 import pandas as pd
 
+# For Daily Data
+# FAST = 5
+# SLOW = 25
+# RSI_SETTING = 4
+
+# For weekly Data
+# FAST = 1
+# SLOW = 5
+# RSI_SETTING = 12
 
 FAST = 5
-SLOW = 15
-RSI_SETTING = 4
-OVERBOUGHT = 66.66
-OVERSOLD = 33.33
+SLOW = 40
+RSI_SETTING = 12
+
 SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
+LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
+
+
+def check_keys_for_string(json_obj, target_string):
+    for key in json_obj.keys():
+        if target_string in key:
+            return True
+    return False
 
 
 def get_data_points():
+
+    is_short_window = check_keys_for_string(
+        data, snake_case_to_proper_case(SHORT_WINDOW))
+
+    window = SHORT_WINDOW if is_short_window else LONG_WINDOW
+
     df = pd.DataFrame(
-        data["Time Series ({})".format(snake_case_to_proper_case(SHORT_WINDOW))])
+        data["Time Series ({})".format(snake_case_to_proper_case(window))])
     return format_data(df)
 
 
@@ -88,7 +110,7 @@ def log_metrics(exchange_rate,
 
 
 def run(df):
-    starting_amount_usd = 100_000
+    starting_amount_usd = 100000
     initial_values_start = 16
     values = df['Close']
 
@@ -116,7 +138,7 @@ def run(df):
     prev_ema_slow = ema_slow_short
 
     in_long = False
-    in_short = False
+    in_short = True
 
     trades = []
 
@@ -135,8 +157,9 @@ def run(df):
         current_rsi = rsi.iloc[-1]
 
         # EMA
-        ema_with_current_rate = get_emas(sliced_values_df, exchange_rate)
-        ema_without_current_rate = get_emas(sliced_values_df)
+        ema_with_current_rate = get_emas(
+            sliced_values_df, exchange_rate, FAST, SLOW)
+        ema_without_current_rate = get_emas(sliced_values_df, FAST, SLOW)
         ema_slow = ema_with_current_rate[0]
         ema_fast = ema_with_current_rate[1]
         prev_ema_slow = ema_without_current_rate[0]
@@ -199,6 +222,7 @@ def run(df):
 
     successfull_trades = analyze_trades(trades)
     print('----------------------------')
+    print(trades)
     print(successfull_trades)
     print('starting_amount_usd: ', starting_amount_usd)
     print('current_amount_usd: ', current_amount_usd)

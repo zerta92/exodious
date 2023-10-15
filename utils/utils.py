@@ -55,17 +55,17 @@ def calculate_ema(data, close_column='Close', ema_period=14, current_exchange=No
         close_values = df[close_column].tolist()
         close_values.append(current_exchange)
         new_df = pd.DataFrame(close_values)
-        ema = new_df.ewm(span=ema_period, adjust=False).mean()
+        ema = new_df.ewm(span=ema_period, adjust=True).mean()
         return ema.iloc[-1][0]
-    ema = data[close_column].ewm(span=ema_period, adjust=False).mean()
+    ema = data[close_column].ewm(span=ema_period, adjust=True).mean()
     return ema.iloc[-1]
 
 
-def get_emas(prev_ema_df, exchange_rate=None):
+def get_emas(prev_ema_df, exchange_rate=None, fast_period=FAST, slow_period=SLOW):
     ema_fast = calculate_ema(
-        prev_ema_df, close_column='Close', ema_period=FAST, current_exchange=exchange_rate)
+        prev_ema_df, close_column='Close', ema_period=fast_period, current_exchange=exchange_rate)
     ema_slow = calculate_ema(
-        prev_ema_df, close_column='Close', ema_period=SLOW, current_exchange=exchange_rate)
+        prev_ema_df, close_column='Close', ema_period=slow_period, current_exchange=exchange_rate)
     return [ema_slow, ema_fast]
 
 
