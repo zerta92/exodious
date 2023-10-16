@@ -12,9 +12,9 @@ import pandas as pd
 # RSI_SETTING = 3
 
 
-FAST = 38
-SLOW = 73
-RSI_SETTING = 19
+FAST = 6
+SLOW = 61
+RSI_SETTING = 16
 
 SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
@@ -238,7 +238,7 @@ def run(df, FAST=FAST, SLOW=SLOW, RSI_SETTING=RSI_SETTING):
     # successfull_trades = analyze_trades(trades)
     # print('starting_amount_usd: ', starting_amount_usd)
     # print('current_amount_usd: ', current_amount_usd)
-    # print('profit: ', profit)
+    print('profit: ', profit)
 
     # # Plot Data
     # plt.plot(exchange_rates)
