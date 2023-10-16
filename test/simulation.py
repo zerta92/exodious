@@ -1,7 +1,7 @@
 
 # run from main path with python -m test.simulation
 import matplotlib.pyplot as plt
-from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
+from utils.utils import format_data, get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
 from .test_data import data_dot_daily as data
 import pandas as pd
 
@@ -24,32 +24,6 @@ def get_data_points(data):
     df = pd.DataFrame(
         data["Time Series ({})".format(snake_case_to_proper_case(window))])
     return format_data(df)
-
-
-def format_data(data):
-    # Switch rows and columns
-    df = data.T
-    # Rename columns
-    df["date"] = df.index
-    df["Open"] = df["1b. open (USD)"]
-    df["Close"] = df["4b. close (USD)"]
-    df["High"] = df["2b. high (USD)"]
-    df["Low"] = df["3b. low (USD)"]
-
-    candlestick_ready_data = pd.DataFrame(
-        {'Open': df.Open, 'Close': df.Close, 'High': df.High, 'Low': df.Low})
-    candlestick_ready_data['Gmt time'] = pd.to_datetime(
-        df['date'], format='%Y-%m-%d')
-    df_reset_index = candlestick_ready_data.reset_index(drop=True)
-    df_reset_index = df_reset_index.set_index(df_reset_index['Gmt time'])
-    df = df_reset_index.drop_duplicates(keep=False)
-    # Turn values to numbers
-    df["Open"] = pd.to_numeric(df["Open"], downcast="float")
-    df["Close"] = pd.to_numeric(df["Close"], downcast="float")
-    df["High"] = pd.to_numeric(df["High"], downcast="float")
-    df["Low"] = pd.to_numeric(df["Low"], downcast="float")
-
-    return df.iloc[::-1]
 
 
 def analyze_trades(trades):

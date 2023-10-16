@@ -2,14 +2,14 @@ from bayes_opt import BayesianOptimization
 from .simulation import run, get_data_points
 from .test_data import data_dot_daily as data
 
+formatted_data = get_data_points(data)
 
-def objective_function(formatted_data, FAST, SLOW, RSI_SETTING):
+
+def objective_function(FAST, SLOW, RSI_SETTING):
     return run(formatted_data, int(FAST), int(SLOW), int(RSI_SETTING))
 
 
 if __name__ == '__main__':
-
-    formatted_data = get_data_points(data)
 
     pbounds = {'FAST': (1, 100), 'SLOW': (1, 100), 'RSI_SETTING': (3, 20)}
 

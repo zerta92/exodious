@@ -14,7 +14,7 @@ import requests
 
 from variables import FAST, SLOW, RSI_SETTING, OVERBOUGHT, OVERSOLD
 from utils.logging_utils import log_make_trades_data, log_emas, log_rsi
-from utils.utils import check_keys_for_string, get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
+from utils.utils import format_data, get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
 from utils.firebase_utils import get_latest_long_or_short
 
 API_KEY = 'R6ZSU4QDSJ052XQN'
@@ -261,9 +261,8 @@ class Strategy:
             raw_data_json = json.loads(raw_data_string)
             df_raw_data = pd.DataFrame(
                 raw_data_json["Time Series ({})".format(snake_case_to_proper_case(window))])
-            data = self.format_data((df_raw_data))
-            # Reverse dataframe
-            return data[::-1]
+            data = format_data(df_raw_data)
+            return data
 
         else:
             print('REQUEST_ERROR')
@@ -277,50 +276,6 @@ class Strategy:
         df_json_raw = pd.DataFrame(
             raw_data_json["Realtime Currency Exchange Rate"], index=[0])
         return float(df_json_raw["5. Exchange Rate"][0])
-
-    def get_daily_data(self):
-        api_url_forex_intraday = 'https://www.alphavantage.co/query?function=FX_DAILY&from_symbol={}&to_symbol={}&outputsize=full&apikey={}'.format(
-            FROM_CURRENCY, TO_CURRENCY, API_KEY)
-        exchange_rate_interval = requests.get(api_url_forex_intraday)
-        if exchange_rate_interval.status_code == 200:
-            raw_data = exchange_rate_interval.json()
-        else:
-            print('REQUEST_ERROR')
-        raw_data_string = json.dumps(raw_data)
-        raw_data_json = json.loads(raw_data_string)
-        try:
-            df_raw_data = pd.DataFrame(raw_data_json["Time Series FX (Daily)"])
-        except:
-            print(raw_data_json)
-        # Switch rows and columns
-        df = df_raw_data.T
-        latest = df.iloc[0]
-        return latest
-
-    def format_data(self, data):
-        # Switch rows and columns
-        df = data.T
-        # Rename columns
-        df["date"] = df.index
-        df["Open"] = df["1a. open (USD)"]
-        df["Close"] = df["4a. close (USD)"]
-        df["High"] = df["2a. high (USD)"]
-        df["Low"] = df["3a. low (USD)"]
-
-        candlestick_ready_data = pd.DataFrame(
-            {'Open': df.Open, 'Close': df.Close, 'High': df.High, 'Low': df.Low})
-        candlestick_ready_data['Gmt time'] = pd.to_datetime(
-            df['date'], format='%Y-%m-%d')
-        df_reset_index = candlestick_ready_data.reset_index(drop=True)
-        df_reset_index = df_reset_index.set_index(df_reset_index['Gmt time'])
-        df = df_reset_index.drop_duplicates(keep=False)
-        # Turn values to numbers
-        df["Open"] = pd.to_numeric(df["Open"], downcast="float")
-        df["Close"] = pd.to_numeric(df["Close"], downcast="float")
-        df["High"] = pd.to_numeric(df["High"], downcast="float")
-        df["Low"] = pd.to_numeric(df["Low"], downcast="float")
-
-        return df
 
     def setup_plot(self):
         self.ani = FuncAnimation(self.fig, self.live_plot, fargs=(
