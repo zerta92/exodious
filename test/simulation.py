@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 # run from main path with python -m test.simulation
 
 from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
-from .test_data import data_btc_daily as data
+from .test_data import data_etc_daily as data
 import pandas as pd
 
 # For Daily Data
@@ -12,9 +12,9 @@ import pandas as pd
 # RSI_SETTING = 3
 
 
-FAST = 5
-SLOW = 50
-RSI_SETTING = 3
+FAST = 38
+SLOW = 73
+RSI_SETTING = 19
 
 SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
@@ -99,7 +99,8 @@ def log_metrics(exchange_rate,
     print('<---------------->')
 
 
-def run(df):
+def run(df, FAST=FAST, SLOW=SLOW, RSI_SETTING=RSI_SETTING):
+
     starting_amount_usd = 100000
     initial_values_start = 16
     values = df['Close']
@@ -174,7 +175,7 @@ def run(df):
             ema_fast, ema_slow, prev_ema_fast, prev_ema_slow)
 
         log_metrics(exchange_rate, last_close, ema_fast, ema_slow, prev_ema_fast,
-                    prev_ema_slow, previous_rsi, current_rsi, ema_signal_crossover, log=True)
+                    prev_ema_slow, previous_rsi, current_rsi, ema_signal_crossover, log=False)
 
         exchange_rates.append(exchange_rate)
         ema_fast_values.append(ema_fast)
@@ -233,25 +234,31 @@ def run(df):
                     trades.append(
                         {'buy': exchange_rate, 'usd': current_amount_usd, 'amount_to_buy': amount_to_buy})
 
-    successfull_trades = analyze_trades(trades)
-    print('starting_amount_usd: ', starting_amount_usd)
-    print('current_amount_usd: ', current_amount_usd)
-    print('profit: ', current_amount_usd-starting_amount_usd)
+    profit = current_amount_usd-starting_amount_usd
+    # successfull_trades = analyze_trades(trades)
+    # print('starting_amount_usd: ', starting_amount_usd)
+    # print('current_amount_usd: ', current_amount_usd)
+    # print('profit: ', profit)
 
-    # Plot Data
-    plt.plot(exchange_rates)
-    plt.scatter(buy_points, [exchange_rates[i]
-                for i in buy_points], color='blue', marker='o', label='BUY')
-    plt.scatter(sell_points, [exchange_rates[i]
-                for i in sell_points], color='red', marker='o', label='SELL')
-    plt.plot(ema_fast_values, label='EMA Fast', linestyle='--', color='green')
-    plt.plot(ema_slow_values, label='EMA Slow', linestyle='--', color='orange')
-    plt.xlabel('Time')
-    plt.ylabel('Exchange Rate')
-    plt.title('Bitcoin Exchange Rate Over Time')
-    plt.show()
+    # # Plot Data
+    # plt.plot(exchange_rates)
+    # plt.scatter(buy_points, [exchange_rates[i]
+    #             for i in buy_points], color='blue', marker='o', label='BUY')
+    # plt.scatter(sell_points, [exchange_rates[i]
+    #             for i in sell_points], color='red', marker='o', label='SELL')
+    # plt.plot(ema_fast_values, label='EMA Fast', linestyle='--', color='green')
+    # plt.plot(ema_slow_values, label='EMA Slow', linestyle='--', color='orange')
+    # plt.xlabel('Time')
+    # plt.ylabel('Exchange Rate')
+    # plt.title('Bitcoin Exchange Rate Over Time')
+    # plt.show()
+    return profit
+
+
+def run_simulation():
+    data = get_data_points()
+    run(data)
 
 
 if __name__ == '__main__':
-    data = get_data_points()
-    run(data)
+    run_simulation()
