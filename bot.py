@@ -17,6 +17,7 @@ from utils.logging_utils import log_make_trades_data, log_emas, log_rsi
 from utils.utils import format_data, get_ema_signal, get_rsi_signal, get_ema_signal_crossover, calculate_ema, get_emas, calc_rsi, snake_case_to_proper_case, send_notifications_to_firebase
 from utils.firebase_utils import get_latest_long_or_short
 
+# https://www.alphavantage.co/documentation/
 API_KEY = 'R6ZSU4QDSJ052XQN'
 BACKUP_API_KEY = '3B01QWGPBVQBKLG2'
 FROM_CURRENCY = 'BTC'
@@ -51,8 +52,6 @@ SELL = json.dumps({
 })
 
 # https://www.theforexchronicles.com/the-ema-5-and-ema-20-crossover-trading-strategy/
-
-# put dots on graph when buy and sell
 # https://www.investopedia.com/terms/e/ema.asp
 # https://www.investopedia.com/terms/r/rsi.asp
 
