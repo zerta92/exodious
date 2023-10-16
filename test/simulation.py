@@ -1,15 +1,9 @@
-import matplotlib.pyplot as plt
 
 # run from main path with python -m test.simulation
-
+import matplotlib.pyplot as plt
 from utils.utils import get_emas, get_rsi_signal, get_ema_signal, get_ema_signal_crossover, calculate_ema, calc_rsi, snake_case_to_proper_case, check_keys_for_string
-from .test_data import data_etc_daily as data
+from .test_data import data_dot_daily as data
 import pandas as pd
-
-# For Daily Data
-# FAST = 25
-# SLOW = 50
-# RSI_SETTING = 3
 
 
 FAST = 6
@@ -20,7 +14,7 @@ SHORT_WINDOW = 'DIGITAL_CURRENCY_DAILY'
 LONG_WINDOW = 'DIGITAL_CURRENCY_WEEKLY'
 
 
-def get_data_points():
+def get_data_points(data):
 
     is_short_window = check_keys_for_string(
         data, snake_case_to_proper_case(SHORT_WINDOW))
@@ -240,24 +234,24 @@ def run(df, FAST=FAST, SLOW=SLOW, RSI_SETTING=RSI_SETTING):
     # print('current_amount_usd: ', current_amount_usd)
     print('profit: ', profit)
 
-    # # Plot Data
-    # plt.plot(exchange_rates)
-    # plt.scatter(buy_points, [exchange_rates[i]
-    #             for i in buy_points], color='blue', marker='o', label='BUY')
-    # plt.scatter(sell_points, [exchange_rates[i]
-    #             for i in sell_points], color='red', marker='o', label='SELL')
-    # plt.plot(ema_fast_values, label='EMA Fast', linestyle='--', color='green')
-    # plt.plot(ema_slow_values, label='EMA Slow', linestyle='--', color='orange')
-    # plt.xlabel('Time')
-    # plt.ylabel('Exchange Rate')
-    # plt.title('Bitcoin Exchange Rate Over Time')
-    # plt.show()
+    # Plot Data
+    plt.plot(exchange_rates)
+    plt.scatter(buy_points, [exchange_rates[i]
+                for i in buy_points], color='blue', marker='o', label='BUY')
+    plt.scatter(sell_points, [exchange_rates[i]
+                for i in sell_points], color='red', marker='o', label='SELL')
+    plt.plot(ema_fast_values, label='EMA Fast', linestyle='--', color='green')
+    plt.plot(ema_slow_values, label='EMA Slow', linestyle='--', color='orange')
+    plt.xlabel('Time')
+    plt.ylabel('Exchange Rate')
+    plt.title('Bitcoin Exchange Rate Over Time')
+    plt.show()
     return profit
 
 
 def run_simulation():
-    data = get_data_points()
-    run(data)
+    formatted_data = get_data_points(data)
+    run(formatted_data)
 
 
 if __name__ == '__main__':
