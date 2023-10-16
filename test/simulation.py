@@ -150,9 +150,6 @@ def run(df):
     # Iterate over data, skipping the initial values
     for index, exchange_rate in enumerate(values.tail(len(values)-initial_values_start).tolist()):
 
-        # if index == 5:
-        #     break
-
         sliced_values_df = pd.DataFrame({
             'Close': values.head(initial_values_start+index),
         })
