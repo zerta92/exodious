@@ -226,12 +226,11 @@ class Strategy:
         # EMA
         ema_with_current_rate = get_emas(
             prev_ema_df, exchange_rate)
-        ema_without_current_rate = get_emas(prev_ema_df)
 
         # Only assign new value to prev emas if last_close has changed, this means a new full period has passed
         if (self.last_completed_candle_df['Close'] != prev_ema_df.iloc[-1]['Close']):
-            self.prev_ema_slow = ema_without_current_rate[0]
-            self.prev_ema_fast = ema_without_current_rate[1]
+            self.prev_ema_slow = self.ema_slow
+            self.prev_ema_fast = self.ema_fast
         self.ema_slow = ema_with_current_rate[0]
         self.ema_fast = ema_with_current_rate[1]
 
