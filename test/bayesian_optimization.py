@@ -11,7 +11,7 @@ def objective_function(FAST, SLOW, RSI_SETTING):
 
 if __name__ == '__main__':
 
-    pbounds = {'FAST': (1, 100), 'SLOW': (1, 100), 'RSI_SETTING': (3, 20)}
+    pbounds = {'FAST': (2, 100), 'SLOW': (2, 100), 'RSI_SETTING': (3, 20)}
 
     optimizer = BayesianOptimization(
         f=objective_function,
