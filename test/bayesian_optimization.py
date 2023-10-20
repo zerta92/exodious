@@ -1,6 +1,7 @@
+#  python -m test.bayesian_optimization
 from bayes_opt import BayesianOptimization
 from .simulation import run, get_data_points
-from .test_data import data_dot_daily as data
+from .test_data import data_btc_daily as data
 
 formatted_data = get_data_points(data)
 
