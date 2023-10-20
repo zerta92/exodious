@@ -7,7 +7,7 @@ formatted_data = get_data_points(data)
 
 
 def objective_function(FAST, SLOW, RSI_SETTING):
-    return run(formatted_data, int(FAST), int(SLOW), int(RSI_SETTING))
+    return run(formatted_data, int(FAST), int(SLOW), int(RSI_SETTING), logs=False)
 
 
 if __name__ == '__main__':
